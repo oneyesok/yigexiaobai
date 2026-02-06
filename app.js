@@ -76,7 +76,9 @@ const filterDue = document.getElementById("filter-due");
 const clearAll = document.getElementById("clear-all");
 const csvFile = document.getElementById("csv-file");
 const importBtn = document.getElementById("import-btn");
+const importRemote = document.getElementById("import-remote");
 const importStatus = document.getElementById("import-status");
+const remoteCsvUrl = "https://raw.githubusercontent.com/oneyesok/yigexiaobai/refs/heads/main/%E9%AB%98%E9%A2%91%E8%AF%8D%E5%BA%93_2000_%E5%90%AB%E4%B8%AD%E6%96%87.csv";
 
 function ensureTodayStats() {
   const key = todayKey();
@@ -571,6 +573,23 @@ importBtn.addEventListener("click", () => {
     importStatus.textContent = "读取失败，请重试。";
   };
   reader.readAsText(file);
+});
+
+importRemote.addEventListener("click", async () => {
+  importStatus.textContent = "正在从 GitHub 获取词库...";
+  try {
+    const resp = await fetch(remoteCsvUrl, { cache: "no-store" });
+    if (!resp.ok) {
+      throw new Error(`HTTP ${resp.status}`);
+    }
+    const text = await resp.text();
+    const result = importCsv(text);
+    importStatus.textContent = `导入完成：新增 ${result.added} 个，跳过 ${result.skipped} 个。`;
+    renderSummary();
+    renderList();
+  } catch (err) {
+    importStatus.textContent = "获取失败，请检查网络或链接。";
+  }
 });
 
 function init() {
