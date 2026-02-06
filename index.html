@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>每日单词记录</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="hero">
+      <div>
+        <h1>每日单词记录</h1>
+        <p class="sub">每天 30 个，轻量可坚持的背单词工具（本地保存，不上传）</p>
+      </div>
+      <div class="goal">
+        <span>今日目标</span>
+        <strong id="goal-count">30</strong>
+      </div>
+    </header>
+
+    <section class="card">
+      <h2>添加单词</h2>
+      <form id="add-form" class="form">
+        <label>
+          英文
+          <input id="word-en" type="text" placeholder="example" required />
+        </label>
+        <label>
+          中文
+          <input id="word-zh" type="text" placeholder="例子" required />
+        </label>
+        <label>
+          例句（可选）
+          <input id="word-ex" type="text" placeholder="This is an example." />
+        </label>
+        <button type="submit">添加</button>
+      </form>
+      <div class="import">
+        <label class="import-label">
+          CSV 批量导入（word,meaning,example）
+          <input id="csv-file" type="file" accept=".csv" />
+        </label>
+        <button id="import-btn" class="ghost">一键导入</button>
+        <span id="import-status" class="import-status"></span>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <h2>今日复习</h2>
+        <div id="today-summary" class="summary"></div>
+        <div class="actions">
+          <button id="start-review">开始今日复习</button>
+          <button id="reset-today" class="ghost">重置今日记录</button>
+        </div>
+        <div id="review-panel" class="review hidden">
+          <div class="review-word" id="review-word"></div>
+          <div class="review-meaning" id="review-meaning"></div>
+          <div class="review-example" id="review-example"></div>
+          <div class="speed">
+            <label for="speech-rate">语速</label>
+            <input id="speech-rate" type="range" min="0.6" max="1.6" step="0.1" value="1.0" />
+            <span id="speech-rate-value">1.0x</span>
+          </div>
+          <div class="actions">
+            <button id="btn-speak" class="ghost">朗读</button>
+            <button id="btn-auto-today" class="ghost">朗读今日</button>
+            <button id="btn-auto-all" class="ghost">朗读全部</button>
+            <button id="btn-stop" class="ghost">停止朗读</button>
+            <button id="btn-know" class="good">认识</button>
+            <button id="btn-dont" class="bad">不认识</button>
+          </div>
+          <div id="auto-status" class="auto-status"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>单词列表</h2>
+        <div class="toolbar">
+          <button id="filter-all" class="active">全部</button>
+          <button id="filter-due">今日应复习</button>
+          <button id="clear-all" class="ghost danger">清空全部</button>
+        </div>
+        <ul id="word-list" class="list"></ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>提示：数据只保存在你的浏览器中，不会上传到任何服务器。</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
