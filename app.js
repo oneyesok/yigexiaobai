@@ -78,7 +78,7 @@ const csvFile = document.getElementById("csv-file");
 const importBtn = document.getElementById("import-btn");
 const importRemote = document.getElementById("import-remote");
 const importStatus = document.getElementById("import-status");
-const remoteCsvUrl = "https://raw.githubusercontent.com/oneyesok/yigexiaobai/refs/heads/main/%E9%AB%98%E9%A2%91%E8%AF%8D%E5%BA%93_2000_%E5%90%AB%E4%B8%AD%E6%96%87.csv";
+const remoteCsvUrl = "https://raw.githubusercontent.com/oneyesok/yigexiaobai/refs/heads/main/%E9%AB%98%E9%A2%91%E8%AF%8D%E5%BA%93_10000_%E5%90%AB%E4%B8%AD%E6%96%87.csv";
 
 function ensureTodayStats() {
   const key = todayKey();
