@@ -78,7 +78,14 @@ const csvFile = document.getElementById("csv-file");
 const importBtn = document.getElementById("import-btn");
 const importRemote = document.getElementById("import-remote");
 const importStatus = document.getElementById("import-status");
-const remoteCsvUrl = "https://raw.githubusercontent.com/oneyesok/yigexiaobai/refs/heads/main/%E9%AB%98%E9%A2%91%E8%AF%8D%E5%BA%93_10000_%E5%90%AB%E4%B8%AD%E6%96%87.csv";
+const librarySelect = document.getElementById("library-select");
+const dailyGoalInput = document.getElementById("daily-goal");
+const saveGoalBtn = document.getElementById("save-goal");
+const goalStatus = document.getElementById("goal-status");
+const libraryUrls = {
+  "2k": "https://raw.githubusercontent.com/oneyesok/yigexiaobai/refs/heads/main/%E9%AB%98%E9%A2%91%E8%AF%8D%E5%BA%93_2000_%E5%90%AB%E4%B8%AD%E6%96%87.csv",
+  "10k": "https://raw.githubusercontent.com/oneyesok/yigexiaobai/refs/heads/main/%E9%AB%98%E9%A2%91%E8%AF%8D%E5%BA%93_10000_%E5%90%AB%E4%B8%AD%E6%96%87.csv",
+};
 
 function ensureTodayStats() {
   const key = todayKey();
@@ -578,7 +585,9 @@ importBtn.addEventListener("click", () => {
 importRemote.addEventListener("click", async () => {
   importStatus.textContent = "正在从 GitHub 获取词库...";
   try {
-    const resp = await fetch(remoteCsvUrl, { cache: "no-store" });
+    const selected = librarySelect ? librarySelect.value : "10k";
+    const url = libraryUrls[selected] || libraryUrls["10k"];
+    const resp = await fetch(url, { cache: "no-store" });
     if (!resp.ok) {
       throw new Error(`HTTP ${resp.status}`);
     }
@@ -592,8 +601,24 @@ importRemote.addEventListener("click", async () => {
   }
 });
 
+saveGoalBtn.addEventListener("click", () => {
+  const value = Number(dailyGoalInput.value);
+  if (!Number.isFinite(value) || value < 1 || value > 200) {
+    goalStatus.textContent = "请输入 1-200 的数字。";
+    return;
+  }
+  state.data.dailyGoal = Math.floor(value);
+  saveData(state.data);
+  goalCount.textContent = state.data.dailyGoal;
+  goalStatus.textContent = "已保存。";
+  renderSummary();
+});
+
 function init() {
   goalCount.textContent = state.data.dailyGoal || 30;
+  if (dailyGoalInput) {
+    dailyGoalInput.value = state.data.dailyGoal || 30;
+  }
   renderSummary();
   renderList();
   renderReview();

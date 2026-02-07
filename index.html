@@ -43,7 +43,26 @@
         </label>
         <button id="import-btn" class="ghost">一键导入</button>
         <button id="import-remote" class="ghost">从 GitHub 导入</button>
+        <label class="import-label">
+          词库选择
+          <select id="library-select">
+            <option value="2k">高频 2000</option>
+            <option value="10k" selected>高频 10000</option>
+          </select>
+        </label>
         <span id="import-status" class="import-status"></span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>学习设置</h2>
+      <div class="actions">
+        <label class="import-label">
+          每日目标
+          <input id="daily-goal" type="number" min="1" max="200" step="1" value="30" />
+        </label>
+        <button id="save-goal" class="ghost">保存目标</button>
+        <span id="goal-status" class="import-status"></span>
       </div>
     </section>
 

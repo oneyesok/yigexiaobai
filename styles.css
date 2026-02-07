@@ -97,6 +97,15 @@ h1 {
   color: var(--muted);
 }
 
+.import-label select,
+.import-label input[type="number"] {
+  margin-top: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  font-size: 14px;
+}
+
 .import-status {
   color: var(--muted);
   font-size: 13px;
