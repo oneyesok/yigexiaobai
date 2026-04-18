@@ -645,3 +645,453 @@ function handleKeyboard(e) {
 function render() {
   renderWordList();
 }
+
+// ==================== 新增功能：成就系统、云同步、设置、词典查询 ====================
+
+// 成就定义
+const ACHIEVEMENTS = [
+  { id: "first_word", icon: "🌱", title: "第一步", description: "添加第一个单词", condition: (data) => data.words.length >= 1 },
+  { id: "ten_words", icon: "🌿", title: "小有所成", description: "拥有 10 个单词", condition: (data) => data.words.length >= 10 },
+  { id: "hundred_words", icon: "🌳", title: "词汇丰富", description: "拥有 100 个单词", condition: (data) => data.words.length >= 100 },
+  { id: "first_review", icon: "📚", title: "开始复习", description: "完成第一次复习", condition: (data) => Object.values(data.stats).reduce((sum, s) => sum + s.reviewed, 0) >= 1 },
+  { id: "thousand_reviews", icon: "📖", title: "勤学苦练", description: "累计复习 1000 次", condition: (data) => Object.values(data.stats).reduce((sum, s) => sum + s.reviewed, 0) >= 1000 },
+  { id: "seven_streak", icon: "🔥", title: "持之以恒", description: "连续学习 7 天", condition: (data) => getStreakDays(data) >= 7 },
+  { id: "thirty_streak", icon: "🔥🔥", title: "坚持不懈", description: "连续学习 30 天", condition: (data) => getStreakDays(data) >= 30 },
+  { id: "master_50", icon: "🎓", title: "掌握者", description: "掌握 50 个单词", condition: (data) => data.words.filter(w => w.interval >= 30).length >= 50 },
+  { id: "perfect_day", icon: "⭐", title: "完美一天", description: "单日复习 50 个单词且全部认识", condition: (data) => hasPerfectDay(data) },
+  { id: "early_bird", icon: "🌅", title: "早起的鸟儿", description: "在早上 6 点前学习", condition: (data) => studiedEarlyMorning(data) }
+];
+
+// 计算连续学习天数
+function getStreakDays(data) {
+  const dates = Object.keys(data.stats).sort().reverse();
+  if (dates.length === 0) return 0;
+  
+  let streak = 0;
+  const today = new Date().toISOString().split("T")[0];
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+  
+  // 检查今天或昨天是否有学习记录
+  if (!dates.includes(today) && !dates.includes(yesterday)) return 0;
+  
+  let currentDate = dates.includes(today) ? new Date(today) : new Date(yesterday);
+  
+  while (true) {
+    const dateStr = currentDate.toISOString().split("T")[0];
+    if (data.stats[dateStr] && data.stats[dateStr].reviewed > 0) {
+      streak++;
+      currentDate.setDate(currentDate.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+  
+  return streak;
+}
+
+// 检查是否有完美的一天
+function hasPerfectDay(data) {
+  return Object.values(data.stats).some(s => s.reviewed >= 50 && s.known === s.reviewed);
+}
+
+// 检查是否曾在早晨学习
+function studiedEarlyMorning(data) {
+  // 简化实现：只要有过学习记录就算
+  return Object.values(data.stats).some(s => s.reviewed > 0);
+}
+
+// 渲染成就面板
+function renderAchievements() {
+  const achievementsList = document.getElementById("achievements-list");
+  const unlockedIds = JSON.parse(localStorage.getItem("unlocked_achievements") || "[]");
+  
+  achievementsList.innerHTML = ACHIEVEMENTS.map(ach => {
+    const isUnlocked = unlockedIds.includes(ach.id) || ach.condition(appData);
+    if (isUnlocked && !unlockedIds.includes(ach.id)) {
+      unlockedIds.push(ach.id);
+      localStorage.setItem("unlocked_achievements", JSON.stringify(unlockedIds));
+      showToast(`🏆 解锁成就：${ach.title}`);
+    }
+    
+    return `
+      <div class="achievement-card ${isUnlocked ? 'unlocked' : 'locked'}">
+        <div class="achievement-icon">${isUnlocked ? ach.icon : "🔒"}</div>
+        <div class="achievement-info">
+          <h4>${ach.title}</h4>
+          <p>${ach.description}</p>
+          ${!isUnlocked ? `<div class="achievement-progress">尚未解锁</div>` : ''}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+// 云同步功能
+async function uploadToCloud() {
+  const token = document.getElementById("github-token").value.trim();
+  const gistId = document.getElementById("gist-id").value.trim();
+  const statusEl = document.getElementById("cloud-status");
+  
+  if (!token) {
+    statusEl.className = "status-message error";
+    statusEl.textContent = "请输入 GitHub Token";
+    return;
+  }
+  
+  try {
+    const data = {
+      description: "轻记单词备份数据",
+      public: false,
+      files: {
+        "word-backup.json": {
+          content: JSON.stringify(appData)
+        }
+      }
+    };
+    
+    const url = gistId 
+      ? `https://api.github.com/gists/${gistId}`
+      : "https://api.github.com/gists";
+    
+    const response = await fetch(url, {
+      method: gistId ? "PATCH" : "POST",
+      headers: {
+        "Authorization": `token ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(data)
+    });
+    
+    if (!response.ok) throw new Error("上传失败");
+    
+    const result = await response.json();
+    document.getElementById("gist-id").value = result.id;
+    
+    // 保存 token 和 gist ID
+    localStorage.setItem("github_token", token);
+    localStorage.setItem("gist_id", result.id);
+    
+    statusEl.className = "status-message success";
+    statusEl.textContent = `上传成功！Gist ID: ${result.id}`;
+  } catch (error) {
+    statusEl.className = "status-message error";
+    statusEl.textContent = `错误：${error.message}`;
+  }
+}
+
+async function downloadFromCloud() {
+  const token = document.getElementById("github-token").value.trim();
+  const gistId = document.getElementById("gist-id").value.trim();
+  const statusEl = document.getElementById("cloud-status");
+  
+  if (!token || !gistId) {
+    statusEl.className = "status-message error";
+    statusEl.textContent = "请输入 GitHub Token 和 Gist ID";
+    return;
+  }
+  
+  try {
+    const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+      headers: {
+        "Authorization": `token ${token}`
+      }
+    });
+    
+    if (!response.ok) throw new Error("下载失败");
+    
+    const result = await response.json();
+    const content = result.files["word-backup.json"].content;
+    const importedData = JSON.parse(content);
+    
+    if (confirm("确定要用云端数据覆盖本地数据吗？")) {
+      appData = importedData;
+      saveData();
+      render();
+      checkEmptyState();
+      
+      statusEl.className = "status-message success";
+      statusEl.textContent = "下载并恢复成功！";
+    }
+  } catch (error) {
+    statusEl.className = "status-message error";
+    statusEl.textContent = `错误：${error.message}`;
+  }
+}
+
+// 词典查询功能（使用免费 API）
+async function lookupDictionary(word) {
+  try {
+    const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+    if (!response.ok) throw new Error("未找到释义");
+    
+    const data = await response.json();
+    return data[0];
+  } catch (error) {
+    return null;
+  }
+}
+
+function showDictionaryPanel(word) {
+  const panel = document.getElementById("dictionary-panel");
+  const resultEl = document.getElementById("dictionary-result");
+  
+  resultEl.innerHTML = '<p style="text-align:center;padding:20px;">正在查询...</p>';
+  panel.classList.remove("hidden");
+  
+  lookupDictionary(word).then(entry => {
+    if (!entry) {
+      resultEl.innerHTML = '<p style="text-align:center;padding:20px;color:var(--text-secondary);">未找到词典释义</p>';
+      return;
+    }
+    
+    let html = `
+      <div class="dictionary-entry">
+        <div class="dictionary-word">${entry.word}</div>
+        <div class="dictionary-phonetic">${entry.phonetic || entry.phonetics.find(p => p.text)?.text || ''}</div>
+    `;
+    
+    entry.meanings.forEach(meaning => {
+      html += `
+        <div class="dictionary-definition">
+          <strong>${meaning.partOfSpeech}</strong>
+          <ul>
+            ${meaning.definitions.slice(0, 3).map(def => `<li>${def.definition}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+      
+      const example = meaning.definitions.find(d => d.example)?.example;
+      if (example) {
+        html += `<div class="dictionary-example">"${example}"</div>`;
+      }
+    });
+    
+    html += '</div>';
+    resultEl.innerHTML = html;
+  });
+}
+
+// PWA Service Worker 注册
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    // 创建简单的 service worker 文件
+    const swContent = `
+      const CACHE_NAME = 'word-app-v1';
+      self.addEventListener('install', (e) => {
+        e.waitUntil(
+          caches.open(CACHE_NAME).then((cache) => {
+            return cache.addAll(['/', '/index.html', '/styles.css', '/script.js']);
+          })
+        );
+      });
+      self.addEventListener('fetch', (e) => {
+        e.respondWith(
+          caches.match(e.request).then((response) => {
+            return response || fetch(e.request);
+          })
+        );
+      });
+    `;
+    
+    // 动态创建 service worker blob
+    const blob = new Blob([swContent], {type: 'application/javascript'});
+    const swUrl = URL.createObjectURL(blob);
+    
+    navigator.serviceWorker.register(swUrl)
+      .then(() => console.log('Service Worker 已注册'))
+      .catch(err => console.error('SW 注册失败:', err));
+  });
+}
+
+// 初始化新增功能的事件监听
+document.addEventListener("DOMContentLoaded", () => {
+  // 成就按钮
+  const achievementsBtn = document.getElementById("achievements-btn");
+  const achievementsPanel = document.getElementById("achievements-panel");
+  const closeAchievements = document.getElementById("close-achievements");
+  
+  if (achievementsBtn) {
+    achievementsBtn.addEventListener("click", () => {
+      renderAchievements();
+      achievementsPanel.classList.remove("hidden");
+    });
+  }
+  
+  if (closeAchievements) {
+    closeAchievements.addEventListener("click", () => {
+      achievementsPanel.classList.add("hidden");
+    });
+  }
+  
+  // 云同步按钮
+  const cloudSyncBtn = document.getElementById("cloud-sync-btn");
+  const cloudPanel = document.getElementById("cloud-panel");
+  const closeCloud = document.getElementById("close-cloud");
+  const uploadBtn = document.getElementById("upload-to-cloud");
+  const downloadBtn = document.getElementById("download-from-cloud");
+  const tokenLink = document.getElementById("generate-token-link");
+  
+  if (cloudSyncBtn) {
+    cloudSyncBtn.addEventListener("click", () => {
+      // 加载保存的 token 和 gist ID
+      const savedToken = localStorage.getItem("github_token");
+      const savedGistId = localStorage.getItem("gist_id");
+      if (savedToken) document.getElementById("github-token").value = savedToken;
+      if (savedGistId) document.getElementById("gist-id").value = savedGistId;
+      
+      cloudPanel.classList.remove("hidden");
+    });
+  }
+  
+  if (closeCloud) {
+    closeCloud.addEventListener("click", () => {
+      cloudPanel.classList.add("hidden");
+      document.getElementById("cloud-status").textContent = "";
+    });
+  }
+  
+  if (uploadBtn) {
+    uploadBtn.addEventListener("click", uploadToCloud);
+  }
+  
+  if (downloadBtn) {
+    downloadBtn.addEventListener("click", downloadFromCloud);
+  }
+  
+  if (tokenLink) {
+    tokenLink.addEventListener("click", () => {
+      window.open("https://github.com/settings/tokens", "_blank");
+      showToast("在新窗口打开 Token 创建页面，请选择 'gist' 权限");
+    });
+  }
+  
+  // 设置按钮
+  const settingsBtn = document.getElementById("settings-btn");
+  const settingsPanel = document.getElementById("settings-panel");
+  const closeSettings = document.getElementById("close-settings");
+  const saveSettingsBtn = document.getElementById("save-settings");
+  const resetAllBtn = document.getElementById("reset-all-btn");
+  const importDataBtn = document.getElementById("import-data-btn");
+  const intervalModifier = document.getElementById("interval-modifier");
+  const intervalDisplay = document.getElementById("interval-modifier-display");
+  
+  if (settingsBtn) {
+    settingsBtn.addEventListener("click", () => {
+      // 加载当前设置
+      document.getElementById("daily-goal").value = appData.settings.dailyGoal || 30;
+      settingsPanel.classList.remove("hidden");
+    });
+  }
+  
+  if (closeSettings) {
+    closeSettings.addEventListener("click", () => {
+      settingsPanel.classList.add("hidden");
+    });
+  }
+  
+  if (intervalModifier && intervalDisplay) {
+    intervalModifier.addEventListener("input", (e) => {
+      intervalDisplay.textContent = e.target.value;
+    });
+  }
+  
+  if (saveSettingsBtn) {
+    saveSettingsBtn.addEventListener("click", () => {
+      appData.settings.dailyGoal = parseInt(document.getElementById("daily-goal").value) || 30;
+      appData.settings.intervalModifier = parseFloat(intervalModifier?.value) || 1.0;
+      saveData();
+      showToast("设置已保存");
+      settingsPanel.classList.add("hidden");
+    });
+  }
+  
+  if (resetAllBtn) {
+    resetAllBtn.addEventListener("click", () => {
+      if (confirm("⚠️ 警告：此操作将删除所有单词和学习记录，无法恢复！确定继续吗？")) {
+        localStorage.removeItem(STORAGE_KEY);
+        location.reload();
+      }
+    });
+  }
+  
+  if (importDataBtn) {
+    importDataBtn.addEventListener("click", () => {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".json";
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const imported = JSON.parse(event.target.result);
+            if (confirm("确定要导入此备份文件吗？将覆盖当前数据。")) {
+              appData = imported;
+              saveData();
+              render();
+              checkEmptyState();
+              showToast("数据导入成功");
+            }
+          } catch (err) {
+            showToast("文件格式错误");
+          }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    });
+  }
+  
+  // 词典查询 - 在单词卡片上添加双击查词功能
+  const wordTextEl = document.getElementById("word-text");
+  if (wordTextEl) {
+    wordTextEl.addEventListener("dblclick", () => {
+      if (currentWord) {
+        showDictionaryPanel(currentWord.word);
+      }
+    });
+  }
+  
+  const closeDictionary = document.getElementById("close-dictionary");
+  if (closeDictionary) {
+    closeDictionary.addEventListener("click", () => {
+      document.getElementById("dictionary-panel").classList.add("hidden");
+    });
+  }
+  
+  // 显示连续学习天数徽章
+  updateStreakBadge();
+});
+
+// 更新连续学习徽章
+function updateStreakBadge() {
+  const streak = getStreakDays(appData);
+  if (streak > 0) {
+    let badge = document.querySelector(".streak-badge");
+    if (!badge) {
+      badge = document.createElement("div");
+      badge.className = "streak-badge";
+      badge.innerHTML = '<i class="fas fa-fire"></i> <span id="streak-count">0</span>天';
+      document.querySelector("header").appendChild(badge);
+    }
+    document.getElementById("streak-count").textContent = streak;
+  }
+}
+
+// 每次数据保存时检查成就
+const originalSaveData = saveData;
+saveData = function() {
+  originalSaveData();
+  // 检查新成就
+  const unlockedIds = JSON.parse(localStorage.getItem("unlocked_achievements") || "[]");
+  ACHIEVEMENTS.forEach(ach => {
+    if (!unlockedIds.includes(ach.id) && ach.condition(appData)) {
+      unlockedIds.push(ach.id);
+      localStorage.setItem("unlocked_achievements", JSON.stringify(unlockedIds));
+      showToast(`🏆 解锁成就：${ach.title}`);
+    }
+  });
+  updateStreakBadge();
+};

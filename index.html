@@ -11,6 +11,10 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4f46e5">
+    <meta name="description" content="轻量级英语单词学习应用，支持间隔重复记忆">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="轻记单词">
 </head>
 <body>
     <div class="container">
@@ -20,11 +24,20 @@
                 <button id="theme-toggle" class="icon-btn" title="切换暗黑模式">
                     <i class="fas fa-moon"></i>
                 </button>
+                <button id="achievements-btn" class="icon-btn" title="成就系统">
+                    <i class="fas fa-trophy"></i>
+                </button>
                 <button id="stats-btn" class="icon-btn" title="查看统计">
                     <i class="fas fa-chart-line"></i>
                 </button>
+                <button id="cloud-sync-btn" class="icon-btn" title="云同步">
+                    <i class="fas fa-cloud"></i>
+                </button>
                 <button id="export-btn" class="icon-btn" title="导出数据">
                     <i class="fas fa-download"></i>
+                </button>
+                <button id="settings-btn" class="icon-btn" title="设置">
+                    <i class="fas fa-cog"></i>
                 </button>
             </div>
         </header>
@@ -158,6 +171,90 @@
         <span id="toast-message">操作已撤销</span>
         <button id="toast-undo" class="btn-sm">撤销</button>
         <button id="toast-close" class="btn-sm"><i class="fas fa-times"></i></button>
+    </div>
+
+    <!-- 成就面板 -->
+    <div id="achievements-panel" class="panel hidden">
+        <div class="panel-header">
+            <h2>🏆 成就系统</h2>
+            <button id="close-achievements" class="close-btn"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="achievements-grid" id="achievements-list">
+            <!-- 动态生成 -->
+        </div>
+    </div>
+
+    <!-- 云同步面板 -->
+    <div id="cloud-panel" class="panel hidden">
+        <div class="panel-header">
+            <h2><i class="fas fa-cloud"></i> 云同步</h2>
+            <button id="close-cloud" class="close-btn"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="cloud-content">
+            <p>使用 GitHub Gist 进行数据同步，支持多设备共享</p>
+            <div class="form-group">
+                <label>GitHub Token (用于访问 Gist)</label>
+                <input type="password" id="github-token" placeholder="输入你的 GitHub Personal Access Token">
+            </div>
+            <div class="form-group">
+                <label>Gist ID (可选，留空则自动创建)</label>
+                <input type="text" id="gist-id" placeholder="例如：abc123def456">
+            </div>
+            <div class="cloud-actions">
+                <button id="upload-to-cloud" class="primary-btn"><i class="fas fa-cloud-upload-alt"></i> 上传到云端</button>
+                <button id="download-from-cloud" class="secondary-btn"><i class="fas fa-cloud-download-alt"></i> 从云端下载</button>
+                <button id="generate-token-link" class="link-btn">如何获取 Token？</button>
+            </div>
+            <div id="cloud-status" class="status-message"></div>
+        </div>
+    </div>
+
+    <!-- 设置面板 -->
+    <div id="settings-panel" class="panel hidden">
+        <div class="panel-header">
+            <h2><i class="fas fa-cog"></i> 设置</h2>
+            <button id="close-settings" class="close-btn"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="settings-content">
+            <div class="form-group">
+                <label>每日学习目标 (单词数)</label>
+                <input type="number" id="daily-goal" min="1" max="200" value="30">
+            </div>
+            <div class="form-group">
+                <label>新卡片每次显示数量</label>
+                <input type="number" id="new-cards-limit" min="1" max="50" value="20">
+            </div>
+            <div class="form-group">
+                <label>复习卡片每次显示数量</label>
+                <input type="number" id="review-cards-limit" min="1" max="200" value="100">
+            </div>
+            <div class="form-group">
+                <label>遗忘曲线参数调整</label>
+                <div class="slider-group">
+                    <label>初始间隔系数：<span id="interval-modifier-display">1.0</span></label>
+                    <input type="range" id="interval-modifier" min="0.5" max="2.0" step="0.1" value="1.0">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>数据管理</label>
+                <div class="data-actions">
+                    <button id="import-data-btn" class="secondary-btn"><i class="fas fa-file-import"></i> 导入备份</button>
+                    <button id="reset-all-btn" class="danger-btn"><i class="fas fa-trash"></i> 重置所有数据</button>
+                </div>
+            </div>
+            <button id="save-settings" class="primary-btn full-width">保存设置</button>
+        </div>
+    </div>
+
+    <!-- 词典查询结果面板 -->
+    <div id="dictionary-panel" class="panel hidden">
+        <div class="panel-header">
+            <h2><i class="fas fa-book"></i> 词典释义</h2>
+            <button id="close-dictionary" class="close-btn"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="dictionary-content" id="dictionary-result">
+            <!-- 动态生成 -->
+        </div>
     </div>
 
     <script src="script.js"></script>
