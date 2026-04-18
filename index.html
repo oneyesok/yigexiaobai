@@ -1,116 +1,165 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>每日单词记录</title>
-  <link rel="stylesheet" href="styles.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>轻记单词 - 高效记忆助手</title>
+    <!-- 引入 Chart.js 用于统计图表 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- 引入 FontAwesome 用于图标 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4f46e5">
 </head>
 <body>
-  <main class="container">
-    <header class="hero">
-      <div>
-        <h1>每日单词记录</h1>
-        <p class="sub">每天 30 个，轻量可坚持的背单词工具（本地保存，不上传）</p>
-      </div>
-      <div class="goal">
-        <span>今日目标</span>
-        <strong id="goal-count">30</strong>
-      </div>
-    </header>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-book-open"></i> 轻记单词</h1>
+            <div class="header-actions">
+                <button id="theme-toggle" class="icon-btn" title="切换暗黑模式">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <button id="stats-btn" class="icon-btn" title="查看统计">
+                    <i class="fas fa-chart-line"></i>
+                </button>
+                <button id="export-btn" class="icon-btn" title="导出数据">
+                    <i class="fas fa-download"></i>
+                </button>
+            </div>
+        </header>
 
-    <section class="card">
-      <h2>添加单词</h2>
-      <form id="add-form" class="form">
-        <label>
-          英文
-          <input id="word-en" type="text" placeholder="example" required />
-        </label>
-        <label>
-          中文
-          <input id="word-zh" type="text" placeholder="例子" required />
-        </label>
-        <label>
-          例句（可选）
-          <input id="word-ex" type="text" placeholder="This is an example." />
-        </label>
-        <button type="submit">添加</button>
-      </form>
-      <div class="import">
-        <label class="import-label">
-          CSV 批量导入（word,meaning,example）
-          <input id="csv-file" type="file" accept=".csv" />
-        </label>
-        <button id="import-btn" class="ghost">一键导入</button>
-        <button id="import-remote" class="ghost">从 GitHub 导入</button>
-        <label class="import-label">
-          词库选择
-          <select id="library-select">
-            <option value="2k">高频 2000</option>
-            <option value="10k" selected>高频 10000</option>
-          </select>
-        </label>
-        <span id="import-status" class="import-status"></span>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2>学习设置</h2>
-      <div class="actions">
-        <label class="import-label">
-          每日目标
-          <input id="daily-goal" type="number" min="1" max="200" step="1" value="30" />
-        </label>
-        <button id="save-goal" class="ghost">保存目标</button>
-        <span id="goal-status" class="import-status"></span>
-      </div>
-    </section>
-
-    <section class="grid">
-      <div class="card">
-        <h2>今日复习</h2>
-        <div id="today-summary" class="summary"></div>
-        <div class="actions">
-          <button id="start-review">开始今日复习</button>
-          <button id="reset-today" class="ghost">重置今日记录</button>
+        <!-- 统计面板 (默认隐藏) -->
+        <div id="stats-panel" class="panel hidden">
+            <div class="panel-header">
+                <h2>学习统计</h2>
+                <button id="close-stats" class="close-btn"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>总单词数</h3>
+                    <p id="total-words">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>待复习</h3>
+                    <p id="due-words">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>已掌握</h3>
+                    <p id="mastered-words">0</p>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="learning-chart"></canvas>
+            </div>
         </div>
-        <div id="review-panel" class="review hidden">
-          <div class="review-word" id="review-word"></div>
-          <div class="review-meaning" id="review-meaning"></div>
-          <div class="review-example" id="review-example"></div>
-          <div class="speed">
-            <label for="speech-rate">语速</label>
-            <input id="speech-rate" type="range" min="0.6" max="1.6" step="0.1" value="1.0" />
-            <span id="speech-rate-value">1.0x</span>
-          </div>
-          <div class="actions">
-            <button id="btn-speak" class="ghost">朗读</button>
-            <button id="btn-auto-today" class="ghost">朗读今日</button>
-            <button id="btn-auto-all" class="ghost">朗读全部</button>
-            <button id="btn-stop" class="ghost">停止朗读</button>
-            <button id="btn-know" class="good">认识</button>
-            <button id="btn-dont" class="bad">不认识</button>
-          </div>
-          <div id="auto-status" class="auto-status"></div>
-        </div>
-      </div>
 
-      <div class="card">
-        <h2>单词列表</h2>
-        <div class="toolbar">
-          <button id="filter-all" class="active">全部</button>
-          <button id="filter-due">今日应复习</button>
-          <button id="clear-all" class="ghost danger">清空全部</button>
-        </div>
-        <ul id="word-list" class="list"></ul>
-      </div>
-    </section>
-  </main>
+        <!-- 主界面 -->
+        <main id="main-view">
+            <!-- 空状态提示 -->
+            <div id="empty-state" class="hidden">
+                <div class="empty-content">
+                    <i class="fas fa-clipboard-list"></i>
+                    <h3>单词本是空的</h3>
+                    <p>开始添加你的第一个单词，或者导入词库吧！</p>
+                    <button id="quick-add-btn" class="primary-btn">添加第一个单词</button>
+                </div>
+            </div>
 
-  <footer class="footer">
-    <p>提示：数据只保存在你的浏览器中，不会上传到任何服务器。</p>
-  </footer>
+            <!-- 复习卡片 -->
+            <div id="review-card" class="card hidden">
+                <div class="card-header">
+                    <span class="badge" id="card-badge">新词</span>
+                    <button id="speak-btn" class="icon-btn-sm" title="朗读单词">
+                        <i class="fas fa-volume-up"></i>
+                    </button>
+                </div>
+                <h2 id="word-text">Example</h2>
+                <p id="word-phonetic" class="phonetic">/ɪgˈzæmpəl/</p>
+                
+                <div class="definition-box" id="definition-box">
+                    <p id="word-definition">点击显示释义</p>
+                </div>
 
-  <script src="app.js"></script>
+                <div class="action-buttons" id="action-buttons">
+                    <button class="btn btn-forget" data-grade="0">忘记</button>
+                    <button class="btn btn-hard" data-grade="3">模糊</button>
+                    <button class="btn btn-good" data-grade="4">认识</button>
+                    <button class="btn btn-easy" data-grade="5">简单</button>
+                </div>
+                <button id="show-answer-btn" class="primary-btn full-width">显示答案</button>
+            </div>
+
+            <!-- 管理面板 -->
+            <div class="manager-section">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="add">添加单词</button>
+                    <button class="tab-btn" data-tab="import">批量导入</button>
+                    <button class="tab-btn" data-tab="list">单词列表</button>
+                </div>
+
+                <div class="tab-content active" id="tab-add">
+                    <form id="add-word-form">
+                        <div class="form-group">
+                            <label>单词</label>
+                            <input type="text" id="new-word" required placeholder="例如：apple">
+                        </div>
+                        <div class="form-group">
+                            <label>释义</label>
+                            <textarea id="new-definition" required placeholder="例如：苹果"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>音标 (可选)</label>
+                            <input type="text" id="new-phonetic" placeholder="例如：/ˈæpəl/">
+                        </div>
+                        <button type="submit" class="primary-btn">添加单词</button>
+                    </form>
+                </div>
+
+                <div class="tab-content" id="tab-import">
+                    <div class="import-options">
+                        <textarea id="bulk-import" placeholder="每行一个单词，格式：单词，释义，音标&#10;例如：&#10;apple,苹果，/ˈæpəl/&#10;banana,香蕉，/bəˈnænə/"></textarea>
+                        <div class="import-actions">
+                            <button id="import-btn" class="primary-btn">导入文本</button>
+                            <label class="file-upload">
+                                <input type="file" id="csv-file" accept=".csv,.txt">
+                                <span><i class="fas fa-file-upload"></i> 上传 CSV/TXT</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="tab-list">
+                    <div class="search-bar">
+                        <input type="text" id="search-input" placeholder="搜索单词...">
+                    </div>
+                    <div class="table-container">
+                        <table id="word-table">
+                            <thead>
+                                <tr>
+                                    <th>单词</th>
+                                    <th>释义</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="word-list-body">
+                                <!-- 动态生成 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 撤销提示条 -->
+    <div id="toast" class="toast hidden">
+        <span id="toast-message">操作已撤销</span>
+        <button id="toast-undo" class="btn-sm">撤销</button>
+        <button id="toast-close" class="btn-sm"><i class="fas fa-times"></i></button>
+    </div>
+
+    <script src="script.js"></script>
 </body>
 </html>
